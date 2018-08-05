@@ -1044,7 +1044,7 @@ class _sensorPacketDecoder(object):
         
     def decode_packet_43(self, low, high):
         """
-            Decode Packet 41 (Left Encoder Counts) and return its value
+            Decode Packet 43 (Left Encoder Counts) and return its value
         
             Arguments:
                 low: Low byte of the 2's complement. Low is specified first to make pop() easier
@@ -1415,7 +1415,7 @@ class _Create2(object):
         self.config = _Config()
         self.config.load()
         self.decoder = _sensorPacketDecoder(dict(self.config.data['sensor group packet lengths']))
-        self.pid_adjust = PID(5, 10, 0)
+        self.pid_adjust = PID(1, 1000, 0)
         # Load a raw sensor dict. None of these values are correct.
         self.sensor_state = dict(self.config.data['sensor data']) 
         self.sleep_timer = .5

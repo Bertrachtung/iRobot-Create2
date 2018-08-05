@@ -48,47 +48,67 @@ MELODY2 = [('C4', 11, 0.3),
 
 distance_left = 0
 distance_right = 0
-radius_change = 32757
+left_wheel_previous = 0
+right_wheel_previous = 0
+left_wheel = 0
+right_wheel = 0
+radius_change = 32767
 
 # Create a Create2. This will automatically try to connect to your robot over serial
 bot = Robot()
 
-# Play the melody1
-for triple in MELODY1:
-    bot.playNote(triple[0], triple[1])
-    time.sleep(triple[2])
+# Play the melody2
+# for triple in MELODY2:
+# bot.playNote(triple[0], triple[1])
+# time.sleep(triple[2])
 
-for i in range(0, 6, 1):
+# Get the Create2 previous right wheel encoder counts
+if bot.robot.get_packet(44) is True:
+    right_wheel_previous = bot.robot.sensor_state['right encoder counts']
+
+# Get the Create2 previous left wheel encoder counts
+if bot.robot.get_packet(43) is True:
+    left_wheel_previous = bot.robot.sensor_state['left encoder counts']
+
+for i in range(0, 65, 1):
 
     # Get the Create2 right wheel distance
     if bot.robot.get_packet(44) is True:
-        right_wheel = bot.robot.sensor_state['right encoder counts'] - 10191
+        right_wheel = bot.robot.sensor_state['right encoder counts'] - right_wheel_previous
         distance_right = right_wheel * math.pi * 72.0 / 508.8
 
     # Get the Create2 left wheel distance
     if bot.robot.get_packet(43) is True:
-        left_wheel = bot.robot.sensor_state['left encoder counts'] - 34877
+        left_wheel = bot.robot.sensor_state['left encoder counts'] - left_wheel_previous
         distance_left = left_wheel * math.pi * 72.0 / 508.8
+
+    if right_wheel == left_wheel:
+        right_wheel_previous = bot.robot.sensor_state['right encoder counts']
+        left_wheel_previous = bot.robot.sensor_state['left encoder counts']
 
     # Calculate the angle in radians
     create2_angle = (distance_right - distance_left) / 235.00
 
-    # Introducing PID algorithm.
-    angle_adjust = bot.robot.pid_adjust.update(create2_angle)
+    # Set the compare value
+    if abs(create2_angle) > math.pi / 90:
 
-    # Calculate the radius
-    if abs(create2_angle + angle_adjust) != 0:
-        radius_change = max(distance_right, distance_left) / abs(create2_angle + angle_adjust) - 117.50
+        # Introducing PID algorithm.
+        angle_adjust = bot.robot.pid_adjust.update(create2_angle)
 
-    # Tell the Create2 to go forward
-    # if create2_angle > 0:
-        # bot.robot.drive(50, -radius_change)
-        # time.sleep(1)
-    # elif create2_angle < 0:
-        # bot.robot.drive(50, radius_change)
-        # time.sleep(1)
-    bot.robot.drive(50, 32767)
-    time.sleep(5)
+        # Calculate the radius
+        if abs(create2_angle + angle_adjust) != 0:
+            radius_change = max(distance_right, distance_left) / abs(create2_angle + angle_adjust) - 117.50
+
+        # Tell the Create2 to go forward
+        if create2_angle > 0:
+            bot.robot.drive(50, radius_change)
+            time.sleep(0.1)
+        elif create2_angle < 0:
+            bot.robot.drive(50, -radius_change)
+            time.sleep(0.1)
+    elif abs(create2_angle) <= math.pi / 90:
+        bot.robot.drive(50, 32767)
+        time.sleep(1)
 
 # Close the connection
 bot.close()
